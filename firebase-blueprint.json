@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "Order": {
+      "title": "Order",
+      "description": "Customer order details for T-shirts",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Customer full name" },
+        "phone": { "type": "string", "description": "Customer phone number" },
+        "address": { "type": "string", "description": "Customer shipping address" },
+        "size": { "type": "string", "enum": ["S", "M", "L", "XL"], "description": "Selected T-shirt size" },
+        "productName": { "type": "string", "description": "Name of the ordered T-shirt" },
+        "deliveryCharge": { "type": "number", "description": "Delivery charge in BDT" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "shipped", "delivered", "cancelled"], "description": "Order status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when order was placed" },
+        "totalAmount": { "type": "number", "description": "Total order amount in BDT" }
+      },
+      "required": ["name", "phone", "address", "size", "productName", "deliveryCharge", "status", "createdAt", "totalAmount"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile with roles",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "seller", "client"] },
+        "displayName": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "T-shirt product details",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "image": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "price", "image", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection of customer orders"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and roles"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of T-shirt products"
+    }
+  }
+}

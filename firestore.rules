@@ -1,0 +1,88 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') || 
+         request.auth.token.email == "siraj426127@gmail.com");
+    }
+
+    function isSeller() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'seller';
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll(['name', 'phone', 'address', 'size', 'productName', 'deliveryCharge', 'status', 'createdAt', 'totalAmount']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.phone is string && data.phone.size() >= 11 && data.phone.size() <= 15 &&
+             data.address is string && data.address.size() > 0 && data.address.size() < 500 &&
+             data.size in ['S', 'M', 'L', 'XL'] &&
+             data.productName is string &&
+             data.deliveryCharge is number &&
+             data.status in ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'] &&
+             data.createdAt is timestamp &&
+             data.totalAmount is number;
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll(['name', 'price', 'image', 'createdAt']) &&
+             data.name is string && data.price is number && data.image is string &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'role']) &&
+             data.email is string && isValidEmail(data.email) &&
+             data.role in ['admin', 'seller', 'client'] &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() < 100));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /orders/{orderId} {
+      allow create: if isAuthenticated() && 
+                      isValidOrder(request.resource.data) && 
+                      request.resource.data.status == 'pending';
+      
+      // Admins and Sellers can read/update orders
+      allow read, update: if isAdmin() || isSeller();
+      // Only admins can delete orders
+      allow delete: if isAdmin();
+    }
+
+    match /products/{productId} {
+      // Anyone can read products
+      allow read: if true;
+      // Only admins can manage products
+      allow create, update, delete: if isAdmin() && isValidProduct(request.resource.data);
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      // Users can create their own profile, admins can manage all
+      allow create: if isAuthenticated() && 
+                      request.auth.uid == userId && 
+                      isValidUser(request.resource.data) &&
+                      request.resource.data.role == 'client'; // New users are clients by default
+      
+      allow update: if isAdmin() && isValidUser(request.resource.data);
+    }
+  }
+}

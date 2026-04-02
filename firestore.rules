@@ -23,13 +23,18 @@ service cloud.firestore {
     }
 
     function isValidOrder(data) {
-      return data.keys().hasAll(['name', 'phone', 'address', 'size', 'productName', 'deliveryCharge', 'status', 'createdAt', 'totalAmount']) &&
+      return data.keys().hasAll(['name', 'phone', 'address', 'city', 'area', 'size', 'productName', 'deliveryCharge', 'paymentMethod', 'status', 'createdAt', 'totalAmount']) &&
              data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
              data.phone is string && data.phone.size() >= 11 && data.phone.size() <= 15 &&
              data.address is string && data.address.size() > 0 && data.address.size() < 500 &&
+             data.city is string && data.city.size() > 0 &&
+             data.area is string && data.area.size() > 0 &&
              data.size in ['S', 'M', 'L', 'XL'] &&
              data.productName is string &&
              data.deliveryCharge is number &&
+             data.paymentMethod in ['bKash', 'Nagad', 'Rocket', 'Upay', 'MCash', 'Cash on Delivery'] &&
+             (!('transactionId' in data) || (data.transactionId is string)) &&
+             (!('email' in data) || (data.email is string)) &&
              data.status in ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'] &&
              data.createdAt is timestamp &&
              data.totalAmount is number;

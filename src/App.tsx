@@ -87,10 +87,15 @@ interface Order {
   id: string;
   name: string;
   phone: string;
+  email?: string;
   address: string;
+  city: string;
+  area: string;
   size: string;
   productName: string;
   deliveryCharge: number;
+  paymentMethod: 'bKash' | 'Nagad' | 'Rocket' | 'Upay' | 'MCash' | 'Cash on Delivery';
+  transactionId?: string;
   status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
   createdAt: any;
   totalAmount: number;
@@ -483,13 +488,33 @@ const Countdown = () => {
 
 const OrderForm = () => {
   const { selectedProduct, setSelectedProduct } = useContext(AuthContext);
-  const [formData, setFormData] = useState({ name: '', phone: '', address: '', size: 'M', location: 'inside' });
+  const [formData, setFormData] = useState({ 
+    name: '', 
+    phone: '', 
+    email: '',
+    address: '', 
+    city: 'Dhaka',
+    area: '',
+    size: 'M', 
+    location: 'inside',
+    paymentMethod: 'Cash on Delivery',
+    transactionId: ''
+  });
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const productPrice = selectedProduct?.price || 990;
   const deliveryCharge = formData.location === 'inside' ? 60 : 120;
   const totalAmount = productPrice + deliveryCharge;
+
+  const paymentMethods = [
+    { id: 'Cash on Delivery', label: 'Cash on Delivery', icon: <Truck size={20} /> },
+    { id: 'bKash', label: 'bKash', color: 'bg-[#D12053]' },
+    { id: 'Nagad', label: 'Nagad', color: 'bg-[#F7941D]' },
+    { id: 'Rocket', label: 'Rocket', color: 'bg-[#8C3494]' },
+    { id: 'Upay', label: 'Upay', color: 'bg-[#FFD400] text-black' },
+    { id: 'MCash', label: 'MCash', color: 'bg-[#0072BC]' },
+  ];
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -504,10 +529,15 @@ const OrderForm = () => {
       await addDoc(collection(db, 'orders'), {
         name: formData.name,
         phone: formData.phone,
+        email: formData.email,
         address: formData.address,
+        city: formData.city,
+        area: formData.area,
         size: formData.size,
         productName: selectedProduct.name,
         deliveryCharge: deliveryCharge,
+        paymentMethod: formData.paymentMethod,
+        transactionId: formData.transactionId,
         status: 'pending',
         createdAt: serverTimestamp(),
         totalAmount: totalAmount
@@ -542,16 +572,6 @@ const OrderForm = () => {
             </div>
           )}
 
-          <div className="space-y-6 mb-12">
-            <div className="flex items-start space-x-4">
-              <div className="bg-green-100 text-green-600 p-2 rounded-full"><CheckCircle2 size={20} /></div>
-              <div>
-                <p className="font-bold text-lg">Cash on Delivery Available</p>
-                <p className="text-gray-500">Pay only when you receive the product.</p>
-              </div>
-            </div>
-          </div>
-          
           <div className="bg-black text-white p-8 rounded-3xl shadow-xl">
             <h4 className="text-xl font-black mb-6 tracking-tight border-b border-white/10 pb-4">ORDER SUMMARY</h4>
             <div className="space-y-4">
@@ -573,8 +593,6 @@ const OrderForm = () => {
         </div>
 
         <div className="bg-black text-white p-10 rounded-[2rem] shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/20 rounded-full blur-3xl" />
-          
           {isSubmitted ? (
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
@@ -598,73 +616,156 @@ const OrderForm = () => {
             </motion.div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
-              <h3 className="text-2xl font-black mb-8 tracking-tight">SHIPPING DETAILS</h3>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Full Name</label>
-                <input 
-                  required
-                  type="text" 
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-4 focus:outline-none focus:border-red-600 transition-colors"
-                  placeholder="e.g. John Doe"
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Phone Number</label>
-                <input 
-                  required
-                  type="tel" 
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-4 focus:outline-none focus:border-red-600 transition-colors"
-                  placeholder="017XXXXXXXX"
-                  value={formData.phone}
-                  onChange={e => setFormData({...formData, phone: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Delivery Location</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({...formData, location: 'inside'})}
-                    className={`py-3 rounded-xl font-bold transition-all text-sm ${formData.location === 'inside' ? 'bg-red-600 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
-                  >
-                    Inside Dhaka (60৳)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({...formData, location: 'outside'})}
-                    className={`py-3 rounded-xl font-bold transition-all text-sm ${formData.location === 'outside' ? 'bg-red-600 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
-                  >
-                    Outside Dhaka (120৳)
-                  </button>
+              <h3 className="text-2xl font-black mb-8 tracking-tight">SHIPPING & PAYMENT</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Full Name</label>
+                  <input 
+                    required
+                    type="text" 
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-red-600 transition-colors"
+                    placeholder="John Doe"
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Phone Number</label>
+                  <input 
+                    required
+                    type="tel" 
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-red-600 transition-colors"
+                    placeholder="017XXXXXXXX"
+                    value={formData.phone}
+                    onChange={e => setFormData({...formData, phone: e.target.value})}
+                  />
                 </div>
               </div>
+
               <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Full Address</label>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Email (Optional)</label>
+                <input 
+                  type="email" 
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-red-600 transition-colors"
+                  placeholder="email@example.com"
+                  value={formData.email}
+                  onChange={e => setFormData({...formData, email: e.target.value})}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">City</label>
+                  <input 
+                    required
+                    type="text" 
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-red-600 transition-colors"
+                    placeholder="e.g. Dhaka"
+                    value={formData.city}
+                    onChange={e => setFormData({...formData, city: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Area</label>
+                  <input 
+                    required
+                    type="text" 
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-red-600 transition-colors"
+                    placeholder="e.g. Dhanmondi"
+                    value={formData.area}
+                    onChange={e => setFormData({...formData, area: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Full Shipping Address</label>
                 <textarea 
                   required
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-4 focus:outline-none focus:border-red-600 transition-colors h-24"
-                  placeholder="House, Road, Area, City"
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-red-600 transition-colors h-20"
+                  placeholder="House #, Road #, Block #"
                   value={formData.address}
                   onChange={e => setFormData({...formData, address: e.target.value})}
                 />
               </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Select Size</label>
-                <div className="grid grid-cols-4 gap-3">
-                  {['S', 'M', 'L', 'XL'].map(size => (
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Delivery Location</label>
+                  <div className="flex flex-col gap-2">
                     <button
-                      key={size}
                       type="button"
-                      onClick={() => setFormData({...formData, size})}
-                      className={`py-3 rounded-xl font-bold transition-all ${formData.size === size ? 'bg-red-600 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                      onClick={() => setFormData({...formData, location: 'inside'})}
+                      className={`py-2 rounded-xl font-bold transition-all text-xs ${formData.location === 'inside' ? 'bg-red-600 text-white' : 'bg-white/10 text-white'}`}
                     >
-                      {size}
+                      Inside Dhaka (60৳)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({...formData, location: 'outside'})}
+                      className={`py-2 rounded-xl font-bold transition-all text-xs ${formData.location === 'outside' ? 'bg-red-600 text-white' : 'bg-white/10 text-white'}`}
+                    >
+                      Outside Dhaka (120৳)
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Select Size</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['S', 'M', 'L', 'XL'].map(size => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setFormData({...formData, size})}
+                        className={`py-2 rounded-xl font-bold transition-all text-xs ${formData.size === size ? 'bg-red-600 text-white' : 'bg-white/10 text-white'}`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Payment Method</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {paymentMethods.map((pm) => (
+                    <button
+                      key={pm.id}
+                      type="button"
+                      onClick={() => setFormData({...formData, paymentMethod: pm.id as any})}
+                      className={`py-3 rounded-xl font-bold transition-all text-[10px] flex flex-col items-center justify-center gap-1 border ${
+                        formData.paymentMethod === pm.id 
+                        ? 'border-red-600 bg-red-600 text-white' 
+                        : 'border-white/10 bg-white/5 text-gray-400 hover:bg-white/10'
+                      }`}
+                    >
+                      {pm.label}
                     </button>
                   ))}
                 </div>
               </div>
+
+              {formData.paymentMethod !== 'Cash on Delivery' && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white/5 p-4 rounded-xl border border-white/10"
+                >
+                  <p className="text-[10px] text-gray-400 mb-2 uppercase tracking-widest">Send Money to: <span className="text-white font-bold">017XXXXXXXX</span></p>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Transaction ID</label>
+                  <input 
+                    required
+                    type="text" 
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:border-red-600 transition-colors"
+                    placeholder="Enter TrxID"
+                    value={formData.transactionId}
+                    onChange={e => setFormData({...formData, transactionId: e.target.value})}
+                  />
+                </motion.div>
+              )}
+
               <button 
                 type="submit"
                 disabled={isSubmitting}
@@ -672,9 +773,6 @@ const OrderForm = () => {
               >
                 {isSubmitting ? 'Processing...' : 'Confirm Order'}
               </button>
-              <p className="text-center text-xs text-gray-500 font-bold uppercase tracking-widest">
-                🔒 Secure Checkout | Cash on Delivery
-              </p>
             </form>
           )}
         </div>
@@ -1002,13 +1100,20 @@ const AdminPanel = () => {
                       <td className="px-8 py-6">
                         <p className="font-bold text-lg">{order.name}</p>
                         <p className="text-gray-500 text-sm">{order.phone}</p>
+                        <p className="text-gray-400 text-[10px] uppercase tracking-widest">{order.city}, {order.area}</p>
                       </td>
                       <td className="px-8 py-6">
                         <p className="text-sm text-gray-600 mb-1">{order.address}</p>
                         <div className="flex flex-wrap gap-2 mt-2">
                           <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest">{order.productName}</span>
                           <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest">SIZE: {order.size}</span>
+                          <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest ${order.paymentMethod === 'Cash on Delivery' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'}`}>
+                            {order.paymentMethod}
+                          </span>
                         </div>
+                        {order.transactionId && (
+                          <p className="text-[10px] font-bold text-gray-400 mt-1">TRX: {order.transactionId}</p>
+                        )}
                       </td>
                       <td className="px-8 py-6">
                         <div className="mb-1">

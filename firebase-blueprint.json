@@ -7,15 +7,20 @@
       "properties": {
         "name": { "type": "string", "description": "Customer full name" },
         "phone": { "type": "string", "description": "Customer phone number" },
+        "email": { "type": "string", "format": "email", "description": "Customer email (optional)" },
         "address": { "type": "string", "description": "Customer shipping address" },
+        "city": { "type": "string", "description": "Shipping city" },
+        "area": { "type": "string", "description": "Shipping area" },
         "size": { "type": "string", "enum": ["S", "M", "L", "XL"], "description": "Selected T-shirt size" },
         "productName": { "type": "string", "description": "Name of the ordered T-shirt" },
         "deliveryCharge": { "type": "number", "description": "Delivery charge in BDT" },
+        "paymentMethod": { "type": "string", "enum": ["bKash", "Nagad", "Rocket", "Upay", "MCash", "Cash on Delivery"], "description": "Payment method used" },
+        "transactionId": { "type": "string", "description": "Transaction ID for mobile payments" },
         "status": { "type": "string", "enum": ["pending", "confirmed", "shipped", "delivered", "cancelled"], "description": "Order status" },
         "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when order was placed" },
         "totalAmount": { "type": "number", "description": "Total order amount in BDT" }
       },
-      "required": ["name", "phone", "address", "size", "productName", "deliveryCharge", "status", "createdAt", "totalAmount"]
+      "required": ["name", "phone", "address", "city", "area", "size", "productName", "deliveryCharge", "paymentMethod", "status", "createdAt", "totalAmount"]
     },
     "User": {
       "title": "User",
